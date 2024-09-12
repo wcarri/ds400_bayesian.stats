@@ -57,7 +57,7 @@ Subset "urine_hg' as 'uhg'
 uhg <- select(urine_hg, SEQN, URXUHG)
 ```
 
-### Merge Subsets Into A Working Dataframe as 'df'
+### Merge Subsets Into A Working Dataframe as 'df' 
 
 ```{r}
 df <- list(diet, tiid, bhg, uhg)
@@ -65,7 +65,7 @@ df <- list(diet, tiid, bhg, uhg)
 df <- df %>% reduce(full_join, by = 'SEQN')
 ```
 
-1.  Filter Dataframe df for the following:
+1.  Filter Data Frame DF for the following:
 
 ```{r}
 # Assuming your dataframe is named `nhanes_data`
@@ -82,13 +82,91 @@ df <- df %>%
   
 ```
 
-2.  Do some exploratory data analysis
-3.  Determine the prior probability that someone has diabetes (DIQ010)
-    -   P(B)
-4.  Determine the prior probability that someone eats tuna (DRD370B)
-    -   P(A)
-5.  Determine the likelihood of eating tuna and having diabetes
-    -   L(B\|A)
-6.  Determine posterior probability via bayes theorem
-    -   P(B\|A)
+2.  Do some exploratory Data Analysis:
+
+    ```{r}
+
+    ## DIQ010 = Diabetes +
+    ## DRD370B = Tuna Fish
+
+    ggplot(data = df, aes(x = DIQ010, fill = DRD370B)) +
+      geom_bar()
+
+    ```
+
+3.  Determine the prior probability that someone has diabetes (DIQ010) ! SEE BELOW:
+
+    -   P(B) = ?
+
+```{r}
+df %>% 
+  tabyl(DIQ010) %>%x
+  adorn_totals("row")
+
+```
+
+-   P(B) = 0.128.. = 0.13
+
+```{r}
+
+prior_prob_x_has_diabetes = 0.13
+
+```
+
+4.  Determine the prior probability that someone eats tuna (DRD370B) ! SEE BELOW:
+    -   P(A) = ?
+
+```{r}
+df %>% 
+  tabyl(DRD370B) %>% 
+  adorn_totals("row")
+
+```
+
+-   P(A) = 0.360... = 0.36
+
+```{r}
+
+prior_prob_x_eats_tuna = 0.36
+
+```
+
+5.  Determine the likelihood of eating tuna and having diabetes ! SEE BELOW:
+    -   L(B\|A) = ?
+
+```{r}
+
+## DIQ010 is tuna, and
+## DRD370 is diabetes !
+
+df %>% 
+  tabyl(DRD370B,DIQ010) %>% 
+  adorn_percentages("col")
+
+
+```
+
+-   L(B\|A) = 0.361... = 0.36
+
+```{r}
+
+likelihood <- 0.36
+
+```
+
+6.  Determine posterior probability via Bayes theorem:
+    -   P(B\|A) = ?
+
+```{r}
+
+(prior_prob_x_has_diabetes * likelihood) / prior_prob_x_eats_tuna
+
+```
+
+-   P(B\|A) = 0.13 or 13%
+
+-   ANSWER: The **posterior probability of eating tuna and having diabetes** is close to **13%** !
+
 7.  What other questions can we ask of this data?
+
+    Another question we can ask of this data is the probability of eating another type of fish and having diabetes. For example, instead of tuna, we can ask what the percent or probability of someone eating swordfish and having diabetes.
