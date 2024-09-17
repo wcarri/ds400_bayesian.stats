@@ -1,0 +1,144 @@
+---
+title: "NHANES Review & Example"
+format: html
+editor: visual
+---
+
+### Load Libraries
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(car)
+library(tidyverse)
+library(haven)
+library(here)
+library(ggplot2)
+library(janitor)
+```
+
+### Read-in Data:
+
+-   DR1TOT_J.xpt as 'diet_behavior'
+-   2017-2018_Hg-Blood.XPT as 'blood_hg'
+-   2017-2018_Hg-Urine.XPT as 'urine_hg'
+-   2017-2018_Diabetes.XPT as 'diabetes'
+
+```{r}
+diet_behavior <- read_xpt(here("data/nhanes/DR1TOT_J.XPT"))
+blood_hg <- read_xpt(here("data/nhanes/2017-2018_Hg-Blood.XPT"))
+urine_hg <- read_xpt(here("data/nhanes/2017-2018_Hg-Urine.XPT"))
+diabetes <- read_xpt(here("data/nhanes/2017-2018_Diabetes.XPT"))
+demographics <- read_xpt(here("data/nhanes/2017-2018_Demographics.XPT"))
+```
+
+### Subset Data:
+
+Subset 'diet_behavior' as 'diet'
+
+```{r}
+diet <- select(diet_behavior, SEQN, DRD360, DRD370B, DRD370BQ, DRD370Q, DRD370QQ)
+```
+
+Subset 'diabetes' as 'tiid'
+
+```{r}
+tiid <- select(diabetes, SEQN, DIQ010)
+```
+
+Subset 'blood_hg' as 'bhg'
+
+```{r}
+bhg <- select(blood_hg, SEQN, LBXIHG, LBDIHGSI, LBXBGE, LBXBGM)
+```
+
+Subset "urine_hg' as 'uhg'
+
+```{r}
+uhg <- select(urine_hg, SEQN, URXUHG)
+```
+
+### Merge subset Data:
+
+```{r}
+df <- list(diet, tiid, bhg, uhg)
+
+df <- df %>% reduce(full_join, by = 'SEQN')
+```
+
+1.  Filter Data Frame DF for the following:
+
+```{r}
+# Assuming your dataframe is named `nhanes_data`
+df <- df %>%
+  # Filter out rows where DIQ010 or DRD360 are NA
+  filter(!is.na(DIQ010), !is.na(DRD370B)) %>%
+  # Keep only rows where DIQ010 and DRD360 are 1 or 2
+  filter(DIQ010 %in% c(1, 2), DRD370B %in% c(1, 2)) %>%
+  # Recode 1 to "Yes" and 2 to "No" for DIQ010 and DRD360
+  mutate(
+    DIQ010 = ifelse(DIQ010 == 1, "Has Diabetes", "Naur Diabetes"),
+    DRD370B = ifelse(DRD370B == 1, "Consumes Tuna? Yes", "Consumes Tuna? No")
+  )
+  
+```
+
+### Week **5**: **Notes about last weeks In-class Assignment:**
+
+-   B \<- Has Diabetes
+
+-   A \<- Eats Tuna
+
+### P(B)
+
+P(B) the probability that a person ***has diabetes*** (B) can be found by the following:
+
+```{r}
+
+df%>% 
+  tabyl(DIQ010)
+
+```
+
+### L(B\|A) = P(A\|B) or (likelihood = probability)
+
+P(A\|B) the probability that a person ***consumes tuna*** (A) given that a person ***has diabetes*** (B):
+
+```{r}
+df %>% 
+  tabyl(DRD370B, DIQ010) %>% 
+  adorn_percentages("col")
+```
+
+Reason as to why "col" and not "row"? We're looking for "diabetes" to be 100% given In other words we are looking to isolate a population given a reason, in this case the reason is that a person ***has*** diabetes, given P(A\|B) where B is equal to the term "has diabetes".
+
+We can also do this and it means the same thing:
+
+```{r}
+df %>% 
+  tabyl(DIQ010, DRD370B) %>% 
+  adorn_percentages("row")
+```
+
+### P(A)
+
+P(A) the probability that a person ***consumes tuna*** (A) can be found by the following:
+
+```{r}
+df %>% 
+  tabyl(DRD370B)
+```
+
+### P(B\|A) 🎉 !
+
+in other words, the question we have been trying to ask ourselves revealed that:
+
+```{r}
+probability_has_diabetes <- 0.13
+probability_consumes_tuna_given_diabetes <- 0.36
+probability_consumes_tuna <- 0.36
+```
+
+```{r}
+(probability_has_diabetes * probability_consumes_tuna_given_diabetes) / probability_consumes_tuna
+
+```
