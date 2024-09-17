@@ -57,7 +57,7 @@ Subset "urine_hg' as 'uhg'
 uhg <- select(urine_hg, SEQN, URXUHG)
 ```
 
-### Merge Subsets Into A Working Dataframe as 'df' 
+### Merge Subsets Into A Working Dataframe as 'df'
 
 ```{r}
 df <- list(diet, tiid, bhg, uhg)
@@ -76,11 +76,13 @@ df <- df %>%
   filter(DIQ010 %in% c(1, 2), DRD370B %in% c(1, 2)) %>%
   # Recode 1 to "Yes" and 2 to "No" for DIQ010 and DRD360
   mutate(
-    DIQ010 = ifelse(DIQ010 == 1, "Yes", "No"),
-    DRD370B = ifelse(DRD370B == 1, "Yes", "No")
+    DIQ010 = ifelse(DIQ010 == 1, "has diabetes", "has no diabetes"),
+    DRD370B = ifelse(DRD370B == 1, "consumes ahi", "no ahi")
   )
   
 ```
+
+### Part 1: Diabetes & Tuna
 
 2.  Do some exploratory Data Analysis:
 
@@ -100,7 +102,7 @@ df <- df %>%
 
 ```{r}
 df %>% 
-  tabyl(DIQ010) %>%x
+  tabyl(DIQ010) %>%
   adorn_totals("row")
 
 ```
@@ -170,3 +172,83 @@ likelihood <- 0.36
 7.  What other questions can we ask of this data?
 
     Another question we can ask of this data is the probability of eating another type of fish and having diabetes. For example, instead of tuna, we can ask what the percent or probability of someone eating swordfish and having diabetes.
+
+### Part 2: Diabetes & Age
+
+```{r}
+demographics <- demographics %>% 
+  select(SEQN, RIDRETH1, RIAGENDR, RIDAGEYR)
+
+demographics
+```
+
+```{r}
+nhanes_df <- left_join(df, demographics, by = "SEQN")
+nhanes_df
+```
+
+```{r}
+nhanes_df <- nhanes_df %>% 
+  mutate(age_bracket = ifelse(RIDAGEYR > 40, "older", "younger"))
+  
+nhanes_df
+```
+
+```{r}
+ggplot(nhanes_df, aes(x = RIDAGEYR, fill = DIQ010)) + geom_density(alpha = 0.5)
+```
+
+1.  P(B) Has Diabetes:
+    -   The probability that a person ***has diabetes*** is close to 13%, P(B) = 0.13.
+
+```{r}
+nhanes_df %>% 
+  tabyl(DIQ010)
+
+```
+
+```{r}
+probability_has_diabetes = 0.1287574
+```
+
+2.  P(A\|B)
+    -   The probability that a person is ***older than 40 years***(A) given that a person ***has diabetes*** (B) \[OR\] the likelihood that a person ***has diabetes*** (B) given that a person is ***older than 40 years*** (A). P(A\|B) = 0.95
+
+P(B) is diabetes and P(A) is age !
+
+```{r}
+nhanes_df %>% 
+  tabyl(age_bracket, DIQ010) %>% 
+  adorn_percentages("col")
+
+## making sure that diabetes adds to 1.0
+## which it does!
+```
+
+```{r}
+probability_has_diabetes_and_is_old = 0.95588235
+```
+
+3.  P(A)
+    -   The probability that someone is over 40 years of age: P(A) = 0.53
+
+```{r}
+nhanes_df %>% 
+  tabyl(age_bracket)
+```
+
+```{r}
+probability_is_older = 0.5342012
+```
+
+4.  P(B\|A)
+    -   The probability that a person has diabetes given that they are over 40 years of age, P(B\|A) = 0.23
+
+```{r}
+(probability_has_diabetes * probability_has_diabetes_and_is_old) / probability_is_older
+
+```
+
+The value of P(B\|A), in this context, means that there is a 23 % chance that a person has diabetes given that the person is older than 40 years of age. With that in mind, it would be interesting to see the probability of a person having diabetes given that the person is older than 40 years of age ***and*** is a confirmed consumer of ahi !
+
+### P(B\|A) = 23% 
