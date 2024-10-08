@@ -1,0 +1,84 @@
+---
+title: "Naive Bayes Breast Cancer"
+format: html
+editor: visual
+---
+
+## Dataset & Paper:
+
+The ***Breast Cancer Wisconsin (Diagnostic)*** dataset is a renowned collection of data used extensively in machine learning and medical research. Originating from digitized images of fine needle aspirates (FNA) of breast masses, this dataset facilitates the analysis of cell nuclei characteristics to aid in the diagnosis of breast cancer. In this article, we delve into the attributes, statistics, and significance of this dataset.
+
+[*A new classifier for breast cancer detection based on Naïve Bayesian*](https://www.sciencedirect.com/science/article/abs/pii/S0263224115002419)
+
+### Libraries
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(e1071)
+library(here)
+library(ggcorrplot)
+library(ggpubr)
+```
+
+### Read in Data
+
+```{r}
+breast_cancer_data <- read_csv(here("data/cancer/wisconsin_breast_cancer_data.csv"))
+```
+
+```{r}
+## dropping col's that are not needed
+breast_cancer_data_cor <- breast_cancer_data %>% select(-id, -diagnosis, -...33)
+```
+
+```{r}
+breast_cancer_matrix <- as.matrix(breast_cancer_data_cor)
+```
+
+```{r}
+breast_cancer_correlations <- cor(breast_cancer_matrix)
+```
+
+### Plotting Correlations...
+
+```{r}
+ggcorrplot(breast_cancer_correlations, type = "lower", lab = TRUE, lab_size = 1)
+```
+
+### ft. Correlation Plots !
+
+```{r}
+ggplot(breast_cancer_data, aes(x = radius_mean, y = perimeter_mean)) + 
+  geom_point() +
+  geom_smooth() +
+  stat_cor()
+```
+
+```{r}
+ggplot(breast_cancer_data, aes(x=radius_mean, y=smoothness_mean)) + 
+  geom_point() + 
+  geom_smooth() +
+  stat_cor()
+```
+
+### Creation of Naive Bayes Model
+
+```{r}
+breast_cancer_mod <- naiveBayes(diagnosis ~., data = breast_cancer_data)
+
+```
+
+```{r}
+breast_cancer_data <- breast_cancer_data %>% 
+  mutate(predicted_diagnosis = predict(object = breast_cancer_mod, newdata = .))
+```
+
+### Creation of Confusion Matrix
+
+```{r}
+breast_cancer_data %>% 
+  tabyl(diagnosis, predicted_diagnosis) %>% 
+  adorn_percentages('row') %>% 
+  adorn_pct_formatting(digits = 2) %>% 
+  adorn_ns
+```
